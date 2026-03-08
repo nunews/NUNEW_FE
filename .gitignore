@@ -43,3 +43,4 @@ next-env.d.ts
 package-*.json
 .DS_Store
 
+.supabase_schema.sql
