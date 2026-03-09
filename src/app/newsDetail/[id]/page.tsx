@@ -11,7 +11,7 @@ import Header from "@/components/layout/header";
 import AudienceAnalyticsChart from "@/components/articleDetail/AudienceAnalyticsChart";
 import { toast } from "sonner";
 import { useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useTyping } from "@/hooks/useTyping";
 import { getLikesStatus } from "@/utils/likes";
 import { useToggleLikeMutation } from "@/hooks/useNewsInteractionMutations";
@@ -21,6 +21,8 @@ import { useNewsSummary } from "@/hooks/useNewsSummary";
 import { formatDate } from "@/utils/date";
 import { useNewsDetail } from "@/hooks/useNewsDetail";
 import NewsDetailSkeleton from "@/components/articleDetail/skeleton/NewsDetailSkeleton";
+import createClient from "@/utils/supabase/client";
+import { useAuthStore } from "@/stores/authStore";
 
 export default function NewsDetailPage() {
   const params = useParams();
@@ -30,6 +32,8 @@ export default function NewsDetailPage() {
   const [isLiked, setIsLiked] = useState(false);
   const { typedRef, runTyped } = useTyping();
   const likeMutation = useToggleLikeMutation();
+  const supabase = useMemo(() => createClient(), []);
+  const userId = useAuthStore((state) => state.userId);
 
   const {
     data: newsData,
@@ -58,6 +62,23 @@ export default function NewsDetailPage() {
       reset();
     }
   }, [generateSummary, reset, runTyped, showSummary]);
+
+  // 페이지 로드 시 조회수 증가 및 조회 로그 기록
+  useEffect(() => {
+    const incrementView = async () => {
+      if (!newsId || !userId) return;
+      try {
+        await supabase.rpc("increment_news_view", {
+          p_news_id: newsId as string,
+          p_user_id: userId,
+        });
+      } catch (error) {
+        console.error("조회수 증가 실패:", error);
+      }
+    };
+
+    incrementView();
+  }, [newsId, userId, supabase]);
 
   useEffect(() => {
     const fetchLikes = async () => {
