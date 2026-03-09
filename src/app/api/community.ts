@@ -5,13 +5,31 @@ export const fetchPost = async () => {
   const supabase = createClient();
   const { data, error } = await supabase
     .from("Post")
-    .select("*")
+    .select(
+      `
+      post_id,
+      user_id,
+      category_id,
+      title,
+      contents,
+      content_image,
+      view_count,
+      like_count,
+      created_at,
+      Comments(count)
+    `
+    )
     .order("created_at", { ascending: false });
   if (error) {
     console.error("게시글 불러오기 실패");
     throw new Error("게시글을 불러오는데 실패했습니다.");
   }
-  return data ?? [];
+  return (
+    data?.map((post) => ({
+      ...post,
+      comment_count: post.Comments?.[0]?.count ?? 0,
+    })) ?? []
+  );
 };
 
 // 아이디로 게시글 불러오기
@@ -31,6 +49,7 @@ export const fetchPostById = async (postId: string) => {
 
 // 게시글 작성자 정보 불러오기(이름,프로필사진)
 export const fetchWriter = async (userId: string) => {
+  if (!userId) return null;
   const supabase = createClient();
   const { data, error } = await supabase
     .from("User")
@@ -170,20 +189,57 @@ export const postCreate = async (
   return data;
 };
 
-//사용자 정보 불러오기
-export const fetchUser = async (email: string) => {
+// post-update
+export const postUpdate = async (
+  postId: string,
+  userId: string,
+  categoryId: string,
+  title: string,
+  content: string,
+  content_image: string | null
+) => {
   const supabase = createClient();
+
   const { data, error } = await supabase
-    .from("User")
-    .select("*")
-    .eq("email", email)
-    .single();
+    .from("Post")
+    .update({
+      post_id: postId,
+      user_id: userId,
+      category_id: categoryId,
+      title: title,
+      contents: content,
+      content_image: content_image,
+    })
+    .eq("post_id", postId)
+    .eq("user_id", userId)
+    .select();
+
   if (error) {
-    console.error("사용자 정보 불러오기 실패:", error);
-  } else {
-    return data;
+    console.error("게시글 수정 실패:", error);
+    throw error;
   }
+
+  return data;
 };
+
+// post-delete
+export const postDelete = async (postId: string, userId: string) => {
+  const supabase = createClient();
+
+  const { error } = await supabase
+    .from("Post")
+    .delete()
+    .eq("id", postId)
+    .eq("user_id", userId);
+
+  if (error) {
+    console.error("게시글 삭제 실패:", error);
+    throw error;
+  }
+
+  return true;
+};
+
 //댓글 불러오기
 export const fetchComment = async (postId: string) => {
   const supabase = createClient();

@@ -8,7 +8,7 @@ const Mypage = () => {
     <div className="min-h-screen">
       <Header logo={true} />
       <main className="mb-18 pt-18">
-        <div className=" flex flex-col px-6">
+        <div className="flex flex-col px-6">
           <MyProfile />
         </div>
         <MyPageTabMenu />

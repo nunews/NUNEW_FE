@@ -1,63 +1,65 @@
 "use client";
-import Image from "next/image";
-import {
-  AiOutlineEye,
-  AiOutlineLike,
-  AiOutlineShareAlt,
-  AiFillLike,
-} from "react-icons/ai";
-import { TextButton } from "@/components/ui/TextButton";
 import Header from "@/components/layout/header";
 import AudienceAnalyticsChart from "@/components/articleDetail/AudienceAnalyticsChart";
-import { toast } from "sonner";
 import { useParams } from "next/navigation";
+<<<<<<< feat/seo-layout
 import { useEffect, useState, useMemo } from "react";
 import { useTyping } from "@/hooks/useTyping";
 import { getLikesStatus } from "@/utils/likes";
 import { useToggleLikeMutation } from "@/hooks/useNewsInteractionMutations";
+=======
+>>>>>>> dev
 import RelatedNewsSection from "@/components/articleDetail/RelatedNewsSection";
 import RelatedPostsSection from "@/components/articleDetail/RelatedPostSection";
-import { useNewsSummary } from "@/hooks/useNewsSummary";
-import { formatDate } from "@/utils/date";
 import { useNewsDetail } from "@/hooks/useNewsDetail";
 import NewsDetailSkeleton from "@/components/articleDetail/skeleton/NewsDetailSkeleton";
+<<<<<<< feat/seo-layout
 import createClient from "@/utils/supabase/client";
 import { useAuthStore } from "@/stores/authStore";
+=======
+import NewsArticleContent from "@/components/articleDetail/NewsArticleContent";
+import createClient from "@/utils/supabase/client";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
+>>>>>>> dev
 
 export default function NewsDetailPage() {
   const params = useParams();
   const newsId = params.id;
 
+<<<<<<< feat/seo-layout
   const [showSummary, setShowSummary] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const { typedRef, runTyped } = useTyping();
   const likeMutation = useToggleLikeMutation();
   const supabase = useMemo(() => createClient(), []);
   const userId = useAuthStore((state) => state.userId);
+=======
+  const { data: newsData, isLoading } = useNewsDetail(newsId as string);
+>>>>>>> dev
 
-  const {
-    data: newsData,
-    isLoading,
-    isError,
-  } = useNewsDetail(newsId as string);
+  const supabase = createClient();
+  const hasIncrementedView = useRef(false);
+  const queryClient = useQueryClient();
 
-  const {
-    isLoading: summaryLoading,
-    isError: summaryError,
-    showTyping,
-    generateSummary,
-    reset,
-  } = useNewsSummary({
-    newsId: newsId as string,
-    newsContent: newsData?.content,
-    isOpen: showSummary,
-  });
-
-  useEffect(() => {
-    if (showSummary) {
-      generateSummary((text) => {
-        setTimeout(() => runTyped(text), 50);
+  const { mutate: incrementNewsView } = useMutation({
+    mutationFn: async (newsId: string) => {
+      await supabase.rpc("increment_news_view", {
+        p_news_id: newsId,
       });
+    },
+    onMutate: async (newsId) => {
+      await queryClient.cancelQueries({ queryKey: ["news-detail", newsId] });
+
+      const previousData = queryClient.getQueryData(["news-detail", newsId]);
+      queryClient.setQueryData(["news-detail", newsId], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          view_count: (old.view_count || 0) + 1,
+        };
+      });
+<<<<<<< feat/seo-layout
     } else {
       reset();
     }
@@ -120,174 +122,55 @@ export default function NewsDetailPage() {
   const handleShare = async () => {
     const currentUrl = window.location.href;
     const newsTitle = "뉴스 제목";
+=======
+>>>>>>> dev
 
-    // 모바일에서는 공유, 데스크톱에서는 클립보드 복사
-    if (
-      /Android|webOS|iPhone|iPad|iPod|IEMobile|Opera Mini/i.test(
-        navigator.userAgent
-      ) &&
-      navigator.share
-    ) {
-      try {
-        await navigator.share({
-          title: newsTitle,
-          url: currentUrl,
-        });
-      } catch (err) {
-        if (err instanceof Error && err.name !== "AbortError") {
-          // 공유 실패 시 클립보드 복사로 폴백
-          await copyToClipboard(currentUrl);
-        }
+      return { previousData };
+    },
+    onError: (err, newsId, context) => {
+      if (context?.previousData) {
+        queryClient.setQueryData(["news-detail", newsId], context.previousData);
       }
-    } else {
-      // 데스크톱에서는 바로 클립보드 복사
-      await copyToClipboard(currentUrl);
-    }
-  };
+    },
+    onSettled: (data, error, newsId) => {
+      queryClient.invalidateQueries({ queryKey: ["news-detail", newsId] });
+    },
+  });
 
-  const copyToClipboard = async (url: string) => {
-    try {
-      await navigator.clipboard.writeText(url);
-      toast.success("링크가 복사되었습니다!", {
-        duration: 3000,
-      });
-    } catch (err) {
-      const textArea = document.createElement("textarea");
-      textArea.value = url;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textArea);
-
-      toast.success("링크가 복사되었습니다!");
-      console.error("복사 중 에러 발생", err);
-    }
-  };
+  useEffect(() => {
+    if (!newsData || hasIncrementedView.current) return;
+    incrementNewsView(newsData.news_id);
+    hasIncrementedView.current = true;
+  }, [newsData, incrementNewsView]);
 
   if (isLoading) {
     return <NewsDetailSkeleton />;
+  }
+
+  if (!newsData) {
+    return null;
   }
 
   return (
     <div className="min-h-screen">
       <Header logo={false} />
 
-      <div className="px-5 pt-18">
-        <div className="text-sm text-[var(--color-gray-70)] mb-2">
-          {newsData?.category_id}
-        </div>
-        <h1 className="text-[22px] font-bold leading-[140%] mb-3">
-          {newsData?.title}
-        </h1>
-        <div className="flex items-center gap-2 text-sm text-[var(--color-gray-70)] mb-7">
-          <span>{formatDate(newsData?.published_at)}</span>
-          <span>•</span>
-          <span>{newsData?.source}</span>
-          <div className="flex items-center justify-end flex-1 gap-[3px]">
-            <AiOutlineEye className="w-5 h-5 text-[var(--color-gray-70)]" />
-            <span className="text-sm text-[var(--color-gray-70)]">
-              {newsData?.view_count}
-            </span>
-          </div>
-        </div>
-        <div className="w-full h-64 mb-7.5 rounded-lg overflow-hidden">
-          <Image
-            src={newsData?.image_url || "/images/default_nunew.svg"}
-            alt="뉴스 이미지"
-            width={400}
-            height={256}
-            className="w-full h-full object-cover"
-          />
-        </div>
-        <div className="mb-6 flex items-center gap-3">
-          <TextButton
-            onClick={handleSummary}
-            className="w-[97px] h-9 px-4 bg-[var(--color-black)] hover:bg-[var(--color-gray-100)] hover:backdrop-blur-[4px]"
-          >
-            <p className="text-sm whitespace-nowrap text-transparent bg-clip-text bg-gradient-to-r from-[#F0FFBC] to-[var(--color-primary-40)]">
-              AI 세줄요약
-            </p>
-          </TextButton>
-          <p className="text-sm">기사를 세 줄로 요약해 드려요!</p>
-        </div>
-        {/* 요약 섹션 */}
-        {showSummary && (
-          <div className="w-full mb-6 animate-in slide-in-from-top-4 duration-300">
-            <div className="bg-[var(--color-gray-10)] dark:bg-[var(--color-black)] rounded-2xl py-6 px-5 border border-[var(--color-gray-30)] dark:border-none">
-              <div>
-                {summaryLoading && (
-                  <div className="flex items-center justify-center py-8">
-                    <div className="flex flex-col items-center space-y-3">
-                      <div className="animate-spin rounded-full h-6 w-6 border-2 border-[var(--color-gray-100)] border-t-transparent"></div>
-                      <p className="text-sm dark:text-[var(--color-gray-40)]">
-                        요약중입니다...
-                      </p>
-                    </div>
-                  </div>
-                )}
+      {/* 뉴스 본문 */}
+      <NewsArticleContent newsData={newsData} />
 
-                {showTyping && !summaryLoading && (
-                  <div className="text-[var(--color-gray-100)] text-base leading-[140%] whitespace-pre-line">
-                    <p className="dark:text-[var(--color-primary-50)] mb-5">
-                      세 줄 요약
-                    </p>
-                    <div
-                      ref={typedRef}
-                      className="text-[var(--color-gray-100)] dark:text-[var(--color-gray-20)]"
-                    ></div>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-        )}
-        {/* 기사 내용 */}
-        <div className="mb-7.5">
-          <div className="text-base leading-[160%] dark:text-[var(--cokor-gray-400)] whitespace-pre-line text-[var(--color-gray-100)]">
-            {newsData?.content}
-          </div>
-        </div>
-        <div className="flex items-center justify-center gap-4 pt-4">
-          <div className="flex items-center gap-[3px]">
-            <TextButton
-              onClick={handleLikeClick}
-              className="flex items-center gap-[3px] transition-colors duration-300 dark:bg-[var(--color-gray-100)] dark:hover:bg-[var(--color-gray-90)] text-[var(--color-black)] dark:text-white"
-            >
-              {isLiked ? (
-                <AiFillLike className="w-5 h-5 text-[var(--color-black)] dark:text-white" />
-              ) : (
-                <AiOutlineLike className="w-5 h-5 text-[var(--color-black)] dark:text-white" />
-              )}
-              <span>{isLiked ? "좋아요" : "좋아요"}</span>
-            </TextButton>
-          </div>
-          <div className="flex items-center gap-[3px]">
-            <TextButton
-              onClick={handleShare}
-              className="flex items-center gap-[3px] dark:bg-[var(--color-gray-100)] dark:hover:bg-[var(--color-gray-90)]"
-              color="default"
-            >
-              <AiOutlineShareAlt className="w-5 h-5 text-[var(--color-black)] dark:text-white dark:hover:text-[var(--color-gray-10)]" />
-              <span className="text-[var(--color-black)] dark:text-white  dark:hover:text-[var(--color-gray-10)]">
-                공유하기
-              </span>
-            </TextButton>
-          </div>
-        </div>
-        {/* 조회수/좋아요 차트  */}
+      {/* 조회수/좋아요 차트  */}
+      <div className="px-5">
         <div className="py-3 mt-9">
-          {newsData?.news_id && (
-            <AudienceAnalyticsChart newsId={newsData.news_id!} />
-          )}
+          <AudienceAnalyticsChart newsId={newsData.news_id} />
         </div>
         <div className="border-b border-[var(--color-gray-20)] mt-9 dark:border-[var(--color-gray-100)]" />
         {/* 다른 유저의 생각 */}
-        <RelatedPostsSection categoryLabel={newsData?.category_id ?? null} />
+        <RelatedPostsSection categoryLabel={newsData.category_id ?? null} />
         <div className="border-b border-[var(--color-gray-20)] mt-9 dark:border-[var(--color-gray-100)]" />
         {/* 관심 가질만한 다른 뉴스 섹션 */}
         <RelatedNewsSection
-          categoryLabel={newsData?.category_id ?? null}
-          currentNewsId={newsData?.news_id ?? null} // 현재 기사 제외용 id
+          categoryLabel={newsData.category_id ?? null}
+          currentNewsId={newsData.news_id ?? null}
         />
       </div>
     </div>

@@ -13,31 +13,33 @@ import { Check } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 import { useAuthStore } from "@/stores/authStore";
-export default function Comment({
-  userId,
-  comment,
-  created_at,
-  onDelete,
-  onUpdate,
-}: {
-  userId: string;
+
+interface CommentProps {
+  commentUserId: string;
   comment: string;
   created_at: string;
   onDelete: () => void;
   onUpdate: (newContent: string) => void;
-}) {
+}
+export default function Comment({
+  commentUserId,
+  comment,
+  created_at,
+  onDelete,
+  onUpdate,
+}: CommentProps) {
   const { theme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const authId = useAuthStore((state) => state.userId);
+  const userId = useAuthStore((state) => state.userId);
   useEffect(() => {
     setMounted(true);
   }, []);
 
   //댓글 작성자 정보 불러오기
   const { data: commentWriterData } = useQuery({
-    queryKey: ["writerDetail", userId],
-    queryFn: () => fetchWriter(userId as string),
-    enabled: !!userId,
+    queryKey: ["writerDetail", commentUserId],
+    queryFn: () => fetchWriter(commentUserId as string),
+    enabled: !!commentUserId,
   });
 
   const [open, setOpen] = useState(false);
@@ -78,9 +80,9 @@ export default function Comment({
                 alt="profileImg"
                 width={36}
                 height={36}
-                className="shrink-0 rounded-full"
+                className="shrink-0 rounded-full w-9 h-9 object-cover"
               />
-              <div className="flex flex-col ml-3 w-full ">
+              <div className="flex flex-col ml-3 w-[90%]">
                 <div className="flex items-center gap-2">
                   <span className="text-[var(--color-gray-100)] dark:text-[var(--color-white)] text-base font-semibold">
                     {commentWriterData?.nickname}
@@ -111,16 +113,18 @@ export default function Comment({
                 )}
               </div>
             </div>
-            <IconButton
-              icon={AiOutlineMore}
-              size={24}
-              color={theme === "light" ? "#2f2f2f" : "var(--color-white)"}
-              onClick={toggleOpen}
-              className="w-8 h-8 hover:bg-[var(--color-gray-10)] dark:hover:bg-[var(--color-gray-100)]"
-            />
+            {!isEditing && userId === commentUserId && (
+              <IconButton
+                icon={AiOutlineMore}
+                size={24}
+                color={theme === "light" ? "#2f2f2f" : "var(--color-white)"}
+                onClick={toggleOpen}
+                className="w-8 h-8 hover:bg-[var(--color-gray-10)] dark:hover:bg-[var(--color-gray-100)]"
+              />
+            )}
           </div>
           <div className="absolute top-9 right-0">
-            {authId === userId && (
+            {userId === commentUserId && (
               <Dropdown
                 isOpen={open}
                 onClose={toggleOpen}

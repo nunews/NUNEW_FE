@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import createClient from "@/utils/supabase/client";
 import { generateRandomNickname } from "@/utils/generateRandomNickname";
 import { Dices } from "lucide-react";
+import { IMAGE_ALLOWED_TYPES, IMAGE_MAX_SIZE } from "@/lib/constants/files";
 
 const ProfileEditForm = ({
   nickname,
@@ -28,15 +29,28 @@ const ProfileEditForm = ({
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        setPreviewImage(result);
-        if (setProfileImage) setProfileImage(result);
-      };
-      reader.readAsDataURL(file);
+    if (!file) return;
+
+    // 파일 타입 지정하고 해당 타입만 가능
+    //
+    if (!IMAGE_ALLOWED_TYPES.includes(file.type)) {
+      toast.error("PNG, JPG, JPEG 파일만 업로드 가능합니다.");
+      e.target.value = "";
+      return;
     }
+
+    if (file.size > IMAGE_MAX_SIZE) {
+      toast.error("파일 크기는 5MB 이하만 가능합니다.");
+      e.target.value = "";
+      return;
+    }
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      setPreviewImage(result);
+      if (setProfileImage) setProfileImage(result);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleClick = () => fileInputRef.current?.click();
@@ -129,7 +143,7 @@ const ProfileEditForm = ({
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/png,image/jpeg,image/webp"
             onChange={handleImageChange}
             className="hidden"
           />
@@ -162,7 +176,7 @@ const ProfileEditForm = ({
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             className="cursor-pointer w-12 h-12 flex items-center justify-center border border-[#DFDFDF] rounded-[8px]
-                       hover:bg-[#F2F2F2] dark:border-[#4D4D4D] dark:hover:bg-[#515151]"
+              hover:bg-[#F2F2F2] dark:border-[#4D4D4D] dark:hover:bg-[#515151]"
           >
             <Dices
               style={{

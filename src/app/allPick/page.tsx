@@ -114,7 +114,7 @@ export default function AllPickPage() {
             };
           })
         );
-        setPostData(postWithUserInfo);
+        setPostData(postWithUserInfo as MyPost[]);
       } catch (error) {
         console.error("게시글 데이터 가져오기 실패", error);
         setPostData([]);
