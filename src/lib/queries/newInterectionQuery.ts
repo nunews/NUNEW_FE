@@ -35,7 +35,7 @@ export const newsInteractionsOptions = {
           .in("news_id", newsIds),
 
         supabase
-          .from("User_scrap")
+          .from("Bookmark")
           .select("news_id")
           .eq("user_id", userId)
           .in("news_id", newsIds),

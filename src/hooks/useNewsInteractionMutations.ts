@@ -50,7 +50,7 @@ export function useToggleBookmarkMutation() {
 
       if (!isBookmarked) {
         // 북마크 추가
-        const { error } = await supabase.from("User_scrap").insert({
+        const { error } = await supabase.from("Bookmark").insert({
           user_id: userId,
           news_id: newsId,
         });
@@ -59,7 +59,7 @@ export function useToggleBookmarkMutation() {
       } else {
         // 북마크 제거
         const { error } = await supabase
-          .from("User_scrap")
+          .from("Bookmark")
           .delete()
           .eq("user_id", userId)
           .eq("news_id", newsId);

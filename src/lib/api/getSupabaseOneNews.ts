@@ -1,5 +1,12 @@
 import supabase from "../supabase";
 import { getKoreanCategoryFromUUID } from "./getNewstoSupabase";
+import {
+  fetchScrapedContent,
+  isContentSufficient,
+} from "./fetchScrapedContent";
+
+// 크롤링이 필요한 최소 본문 길이
+const MIN_CONTENT_LENGTH = 100;
 
 export const getSupabaseOneNews = async (newsId: string) => {
   try {
@@ -19,12 +26,36 @@ export const getSupabaseOneNews = async (newsId: string) => {
     }
 
     const koreanCategory = getKoreanCategoryFromUUID(newsData.category_id);
+    let finalContent = newsData.content;
+
+    // 본문이 부족하면 크롤링 서버에서 가져오기 시도
+    if (
+      !isContentSufficient(newsData.content, MIN_CONTENT_LENGTH) &&
+      newsData.url &&
+      newsData.source
+    ) {
+      console.log(
+        `[getSupabaseOneNews] 본문 부족 (${newsData.content?.length ?? 0}자), 크롤링 시도...`
+      );
+
+      const scrapedContent = await fetchScrapedContent(
+        newsData.source,
+        newsData.url
+      );
+
+      if (scrapedContent && scrapedContent.length > (finalContent?.length ?? 0)) {
+        finalContent = scrapedContent;
+        console.log(
+          `[getSupabaseOneNews] 크롤링 성공, 본문 길이: ${finalContent.length}자`
+        );
+      }
+    }
 
     return {
       news_id: newsData.news_id,
       category_id: koreanCategory, // 한글 카테고리명으로 변환된 값
       title: newsData.title,
-      content: newsData.content,
+      content: finalContent,
       source: newsData.source,
       published_at: newsData.published_at
         ? new Date(newsData.published_at).toISOString()

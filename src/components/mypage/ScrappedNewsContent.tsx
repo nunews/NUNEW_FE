@@ -25,7 +25,7 @@ export default function ScrappedNewsContent({
     setLoading(true);
 
     const { data, error } = await supabase
-      .from("User_scrap")
+      .from("Bookmark")
       .select(
         `
       created_at,
