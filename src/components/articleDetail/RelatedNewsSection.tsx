@@ -6,6 +6,7 @@ import createClient from "@/utils/supabase/client";
 import RecommendNews from "@/components/ui/RecommendNews";
 import { categoryIdMap } from "@/lib/categoryUUID";
 import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/stores/authStore";
 
 interface RelatedNewsSectionProps {
   categoryLabel: string | null; //한글 카테고리 명
@@ -18,15 +19,19 @@ const RelatedNewsSection = ({
 }: RelatedNewsSectionProps) => {
   const supabase = createClient();
   const route = useRouter();
+  const userId = useAuthStore((state) => state.userId);
 
-  // 관심 뉴스 클릭했을 때 조회수 증가
+  // 관심 뉴스 클릭했을 때 조회수 증가 및 로그 기록
   const handleRelatedClick = async (newsId: string) => {
-    try {
-      await supabase.rpc("increment_news_view", {
-        p_news_id: newsId,
-      });
-    } catch (err) {
-      console.error("관심 뉴스 조회수 증가 실패", err);
+    if (userId) {
+      try {
+        await supabase.rpc("increment_news_view", {
+          p_news_id: newsId,
+          p_user_id: userId,
+        });
+      } catch (err) {
+        console.error("관심 뉴스 조회수 증가 실패", err);
+      }
     }
 
     route.push(`/newsDetail/${newsId}`);
