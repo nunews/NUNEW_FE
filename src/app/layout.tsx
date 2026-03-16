@@ -8,6 +8,7 @@ import TanstackProvider from "./provider/TanstackProvider";
 import AuthBootstrap from "@/components/auth/AuthBootstrap";
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://nunew.vercel.app"),
   title: "NUNEW",
   description: "누구나 간단히 읽는 쉬운 뉴스, 누뉴",
   openGraph: {

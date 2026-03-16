@@ -60,23 +60,9 @@ export default function Home() {
   // 원문 보기 버튼 클릭 시 디테일 페이지로 이동
   const handleViewOriginalClick = useCallback(
     (news: SupabaseNewsData) => {
-      // 조회수 증가 및 조회 로그 기록
-      if (userId) {
-        (async () => {
-          try {
-            await supabase.rpc("increment_news_view", {
-              p_news_id: news.news_id,
-              p_user_id: userId,
-            });
-          } catch (error) {
-            console.error("조회수 증가 실패", error);
-          }
-        })();
-      }
-      // 뉴스 디테일 페이지 이동
       router.push(`/newsDetail/${news.news_id}`);
     },
-    [userId, supabase, router]  // ← 이렇게 수정
+    [router]
   );
 
   if ((isLoading || isFetching) && newsData.length === 0) {
