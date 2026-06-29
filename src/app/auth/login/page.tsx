@@ -4,23 +4,15 @@ import LoginBanner from "@/components/auth/LoginBanner";
 import Header from "@/components/layout/header";
 import { Bubble } from "@/components/ui/Bubble";
 import { TextButton } from "@/components/ui/TextButton";
-import createClient from "@/utils/supabase/client";
 import { useMutation } from "@tanstack/react-query";
 import { FcGoogle } from "react-icons/fc";
 
 export default function LoginPage() {
   const signInWithGoogle = async () => {
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${location.origin}/auth/callback`,
-      },
-    });
+    const backendUrl =
+      process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:4000";
 
-    if (error) {
-      throw new Error(error.message);
-    }
+    window.location.href = backendUrl + "/auth/google";
   };
 
   const { mutate: gooogleLogin, isPending } = useMutation({

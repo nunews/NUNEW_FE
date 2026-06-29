@@ -9,9 +9,9 @@ import Header from "@/components/layout/header";
 import { useState } from "react";
 import { generateRandomNickname } from "@/utils/generateRandomNickname";
 import { toast } from "sonner";
-import createClient from "@/utils/supabase/client";
 import { useRouter } from "next/navigation";
 import { ageOptions } from "@/lib/constants/ageOptions";
+import { useAuthStore } from "@/stores/authStore";
 
 export default function ProfileInitPage() {
   const [selectedGender, setSelectedGender] = useState<string | null>(null);
@@ -21,8 +21,10 @@ export default function ProfileInitPage() {
   const [checking, setChecking] = useState(false);
   const [nicknameError, setNicknameError] = useState<string | null>(null);
   const [isNicknameChecked, setIsNicknameChecked] = useState(false);
-  const supabase = createClient();
   const router = useRouter();
+  const setUser = useAuthStore((state) => state.setUser);
+  const backendUrl =
+    process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:4000";
 
   const defaultButtonStyle = `
   bg-white
@@ -87,15 +89,20 @@ export default function ProfileInitPage() {
 
     try {
       setChecking(true);
-      const { data, error } = await supabase
-        .from("User")
-        .select("user_id")
-        .eq("nickname", nickname)
-        .maybeSingle();
+      const response = await fetch(
+        `${backendUrl}/users/nickname/check?nickname=${encodeURIComponent(
+          nickname
+        )}`,
+        {
+          credentials: "include",
+        }
+      );
 
-      if (error) throw error;
+      if (!response.ok) throw new Error("닉네임 중복 확인 실패");
 
-      if (data) {
+      const data = (await response.json()) as { available: boolean };
+
+      if (!data.available) {
         toast.error("이미 사용 중인 닉네임입니다.");
         setIsNicknameChecked(false);
       } else {
@@ -122,36 +129,42 @@ export default function ProfileInitPage() {
       return;
     }
     try {
-      const { data, error } = await supabase.auth.getUser();
-      const user = data?.user;
+      const ageValue = selectedAge === "none" ? null : selectedAge;
+      const response = await fetch(`${backendUrl}/users/me`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          nickname,
+          gender: selectedGender,
+          ageRange: ageValue,
+        }),
+      });
 
-      if (error) {
-        console.error("getuser 오류", error);
-        toast.error("구글 로그인을 다시 시도해 주세요.");
-        return;
-      }
-
-      if (!user) {
+      if (response.status === 401) {
         toast.error("로그인을 먼저해 주세요.");
         router.replace("/auth/login");
         return;
       }
 
-      const ageValue = selectedAge === "none" ? null : selectedAge;
-      const { error: upsertError } = await supabase
-        .from("User")
-        .update({
-          nickname,
-          gender: selectedGender,
-          age_range: ageValue,
-        })
-        .eq("user_id", user.id);
-
-      if (upsertError) {
-        console.error("프로필 저장 오류", upsertError);
+      if (!response.ok) {
         toast.error("프로필 저장 중 오류가 발생했어요.");
         return;
       }
+
+      const user = await response.json();
+
+      setUser({
+        userId: user.userId,
+        email: user.email,
+        nickname: user.nickname,
+        profile_image: user.profileImage,
+        age_range: user.ageRange,
+        gender: user.gender,
+        interest: user.interest ?? [],
+      });
 
       toast.success("저장되었습니다!");
       router.replace("/");

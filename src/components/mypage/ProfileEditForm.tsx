@@ -4,7 +4,6 @@ import { TextButton } from "../ui/TextButton";
 import Image from "next/image";
 import defaultProfile from "../../assets/images/default_profile.png";
 import { toast } from "sonner";
-import createClient from "@/utils/supabase/client";
 import { generateRandomNickname } from "@/utils/generateRandomNickname";
 import { Dices } from "lucide-react";
 
@@ -24,7 +23,8 @@ const ProfileEditForm = ({
   const [nicknameError, setNicknameError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const supabase = createClient();
+  const backendUrl =
+    process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:4000";
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -33,9 +33,9 @@ const ProfileEditForm = ({
       reader.onloadend = () => {
         const result = reader.result as string;
         setPreviewImage(result);
-        if (setProfileImage) setProfileImage(result);
       };
       reader.readAsDataURL(file);
+      if (setProfileImage) setProfileImage(file);
     }
   };
 
@@ -75,15 +75,20 @@ const ProfileEditForm = ({
 
     try {
       setChecking(true);
-      const { data, error } = await supabase
-        .from("User")
-        .select("user_id")
-        .eq("nickname", nickname)
-        .maybeSingle();
+      const response = await fetch(
+        backendUrl +
+          "/users/nickname/check?nickname=" +
+          encodeURIComponent(nickname),
+        {
+          credentials: "include",
+        }
+      );
 
-      if (error) throw error;
+      if (!response.ok) throw new Error("닉네임 중복 확인 실패");
 
-      if (data) {
+      const data = (await response.json()) as { available: boolean };
+
+      if (!data.available) {
         toast.error("이미 사용 중인 닉네임입니다.");
         setIsNicknameChecked(false);
       } else {

@@ -1,4 +1,3 @@
-import createClient from "@/utils/supabase/client";
 import { create } from "zustand";
 
 interface UserData {
@@ -33,8 +32,14 @@ export const useAuthStore = create<UserState>((set) => ({
     })),
 
   clearUser: async () => {
-    const supabase = createClient();
-    await supabase.auth.signOut();
+    const backendUrl =
+      process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:4000";
+
+    await fetch(backendUrl + "/auth/logout", {
+      method: "POST",
+      credentials: "include",
+    }).catch(() => null);
+
     set({
       userId: null,
       email: null,

@@ -3,7 +3,7 @@ interface ProfileEditFormProps {
   setNickname: (value: string) => void;
   currentNickname: string;
   currentProfileImage: string | null;
-  setProfileImage?: (value: string) => void;
+  setProfileImage?: (value: File) => void;
   setIsNicknameChecked: (value: boolean) => void;
   isNicknameChecked: boolean;
 }
