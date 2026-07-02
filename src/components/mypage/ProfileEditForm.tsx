@@ -6,6 +6,7 @@ import defaultProfile from "../../assets/images/default_profile.png";
 import { toast } from "sonner";
 import { generateRandomNickname } from "@/utils/generateRandomNickname";
 import { Dices } from "lucide-react";
+import { IMAGE_ALLOWED_TYPES, IMAGE_MAX_SIZE } from "@/lib/constants/files";
 
 const ProfileEditForm = ({
   nickname,
@@ -28,15 +29,27 @@ const ProfileEditForm = ({
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        setPreviewImage(result);
-      };
-      reader.readAsDataURL(file);
-      if (setProfileImage) setProfileImage(file);
+    if (!file) return;
+
+    if (!IMAGE_ALLOWED_TYPES.includes(file.type)) {
+      toast.error("PNG, JPG, JPEG 파일만 업로드 가능합니다.");
+      e.target.value = "";
+      return;
     }
+
+    if (file.size > IMAGE_MAX_SIZE) {
+      toast.error("파일 크기는 5MB 이하만 가능합니다.");
+      e.target.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result as string;
+      setPreviewImage(result);
+    };
+    reader.readAsDataURL(file);
+    if (setProfileImage) setProfileImage(file);
   };
 
   const handleClick = () => fileInputRef.current?.click();
@@ -64,7 +77,6 @@ const ProfileEditForm = ({
       return;
     }
 
-    // 유효하지 않으면 중복확인 중단
     if (nicknameError) return;
 
     if (nickname === currentNickname) {
@@ -116,7 +128,6 @@ const ProfileEditForm = ({
         내 정보 수정
       </h1>
 
-      {/* 프로필 이미지 */}
       <div className="flex justify-center">
         <div
           className="relative w-24 h-24 rounded-full overflow-hidden cursor-pointer group"
@@ -134,14 +145,13 @@ const ProfileEditForm = ({
           <input
             ref={fileInputRef}
             type="file"
-            accept="image/*"
+            accept="image/png,image/jpeg,image/webp"
             onChange={handleImageChange}
             className="hidden"
           />
         </div>
       </div>
 
-      {/* 닉네임 변경 */}
       <div>
         <p className="pb-2 text-[var(--color-gray-80)]">닉네임 변경</p>
         <div className="flex items-center gap-2">
@@ -160,14 +170,13 @@ const ProfileEditForm = ({
             }
           />
 
-          {/* 랜덤 닉네임 버튼 */}
           <button
             type="button"
             onClick={handleRandomNickname}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             className="cursor-pointer w-12 h-12 flex items-center justify-center border border-[#DFDFDF] rounded-[8px]
-                       hover:bg-[#F2F2F2] dark:border-[#4D4D4D] dark:hover:bg-[#515151]"
+              hover:bg-[#F2F2F2] dark:border-[#4D4D4D] dark:hover:bg-[#515151]"
           >
             <Dices
               style={{

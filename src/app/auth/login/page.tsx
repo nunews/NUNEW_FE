@@ -37,6 +37,7 @@ export default function LoginPage() {
 
           <TextButton
             onClick={() => gooogleLogin()}
+            disabled={isPending}
             className="absolute bottom-[90px] h-12.5 rounded-full border-[var(--color-gray-30)] border-1 bg-[var(--color-white)] "
           >
             <div className="flex items-center justify-center gap-2">

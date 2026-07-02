@@ -108,7 +108,7 @@ export default function NewsSection({
 
   return (
     <section
-      className={`relative w-full min-h-[100dvh] bg-no-repeat bg-cover bg-center ${className}`}
+      className={`relative w-full min-h-[100svh] bg-no-repeat bg-cover bg-center ${className}`}
       style={{
         backgroundImage: data.image_url ? `url(${data.image_url})` : "none",
       }}

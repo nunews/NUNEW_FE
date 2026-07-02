@@ -5,12 +5,11 @@ import Footer from "../layout/footer";
 import Header from "../layout/header";
 import NewsSection from "./NewsSection";
 import { useAutoNewsFetch } from "@/hooks/useAutoNewsFetch";
-import createClient from "@/utils/supabase/client";
 import { useNewsData } from "@/hooks/useNewsData";
 import { useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
 import { useMemo } from "react";
-import { useAuthStore } from "@/stores/authStore";
+
 import ModalPortal from "../ui/ModalPortal";
 import { useHomeRender } from "@/hooks/useHomeRender";
 import Splash from "./Splash";
@@ -23,9 +22,7 @@ export default function Home() {
     null
   );
   const mainRef = useRef<HTMLElement>(null);
-  const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
-  const userId = useAuthStore((state) => state.userId);
 
   // useNewsData 훅으로 뉴스 데이터 가져오기
   const { data: newsData = [], isError, isLoading, isFetching } = useNewsData();
@@ -60,26 +57,12 @@ export default function Home() {
     setSelectedNews(news);
   };
 
-  // 원문 보기 버튼 클릭 시: 조회수 +1 후 디테일 페이지로 이동
+  // 원문 보기 버튼 클릭 시 디테일 페이지로 이동
   const handleViewOriginalClick = useCallback(
     (news: SupabaseNewsData) => {
-      // 조회수 증가
-      if (userId) {
-        (async () => {
-          try {
-            await supabase.rpc("increment_news_view", {
-              p_news_id: news.news_id,
-            });
-          } catch (error) {
-            console.error("조회수 증가 실패", error);
-          }
-        })();
-      }
-
-      // 뉴스 디테일 페이지 이동
       router.push(`/newsDetail/${news.news_id}`);
     },
-    [userId, supabase, router]
+    [router]
   );
 
   if ((isLoading || isFetching) && newsData.length === 0) {

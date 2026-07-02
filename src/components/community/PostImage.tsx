@@ -1,9 +1,11 @@
 "use client";
 
+import { IMAGE_ALLOWED_TYPES, IMAGE_MAX_SIZE } from "@/lib/constants/files";
 import createClient from "@/utils/supabase/client";
 import Image from "next/image";
 import { useRef } from "react";
 import { SlPicture } from "react-icons/sl";
+import { toast } from "sonner";
 
 export default function PostImage({
   setContentImg,
@@ -15,14 +17,25 @@ export default function PostImage({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const supabase = createClient();
   const handleClick = () => {
-    console.log("버튼클릭");
     fileInputRef.current?.click();
   };
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    const ext = file.name.split(".").pop();
 
+    // 파일 타입 지정하고 해당 타입만 가능
+    if (!IMAGE_ALLOWED_TYPES.includes(file?.type)) {
+      toast.error("PNG, JPG, JPEG 파일만 업로드 가능합니다.");
+      e.target.value = "";
+      return;
+    }
+    // 파일 크기 지정하고 해당 크기보다 작을 경우만 가능
+    if (file?.size > IMAGE_MAX_SIZE) {
+      toast.error("파일 크기는 5MB 이하만 가능합니다.");
+      e.target.value = "";
+      return;
+    }
+    const ext = file?.name.split(".").pop();
     const fileName = `${crypto.randomUUID()}.${ext}`;
 
     const { data, error } = await supabase.storage
@@ -69,7 +82,7 @@ export default function PostImage({
 
       <input
         type="file"
-        accept="image/*"
+        accept="image/png,image/jpeg,image/webp,image/jpg"
         ref={fileInputRef}
         className="hidden"
         onChange={handleFileChange}

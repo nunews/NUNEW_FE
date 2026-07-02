@@ -3,7 +3,7 @@ import Image from "next/image";
 import defaultImg from "../../assets/images/default_nunew.svg";
 import profile1 from "../../assets/images/default_profile.png";
 import { AiFillLike, AiOutlineLike } from "react-icons/ai";
-import { IoEyeOutline } from "react-icons/io5";
+import { IoChatboxOutline, IoEyeOutline } from "react-icons/io5";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -13,7 +13,6 @@ import {
   isLikedByUser,
   postLike,
   postUnlike,
-  postView,
 } from "@/app/api/community";
 import { categoryIdInvMap } from "@/lib/categoryUUID";
 import { toast } from "sonner";
@@ -27,6 +26,7 @@ interface CommunityPostProps {
   title: string;
   content: string;
   views: number;
+  comments?: number;
 }
 export default function CommunityPost({
   postId,
@@ -36,10 +36,10 @@ export default function CommunityPost({
   title,
   content,
   views,
+  comments,
 }: CommunityPostProps) {
   const router = useRouter();
   const [likeCount, setLikeCount] = useState<number>(0);
-  const [viewCount, setViewCount] = useState(views ?? 0);
   const userId = useAuthStore((state) => state.userId);
 
   const { data: likeData } = useQuery<number>({
@@ -102,22 +102,6 @@ export default function CommunityPost({
     },
   });
 
-  //조회수 업데이트
-  const { mutate: mutateView } = useMutation({
-    mutationFn: (cnt: number) => {
-      if (!userId) {
-        return Promise.resolve(null);
-      }
-      return postView(postId, cnt);
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["communityList"] });
-    },
-    onError: (err) => {
-      console.error("조회수 업로드 실패:", err);
-    },
-  });
-
   const likeHandler = () => {
     if (!userId) {
       toast.error("로그인이 필요합니다.");
@@ -127,8 +111,8 @@ export default function CommunityPost({
     setLikeCount((prev) => prev + (like ? -1 : 1));
     likeUpdate(!like);
   };
+
   const viewHandler = () => {
-    mutateView(viewCount + 1);
     router.push(`/community/${postId}`);
   };
   return (
@@ -151,7 +135,7 @@ export default function CommunityPost({
                 alt="profile1"
                 width={36}
                 height={36}
-                className="rounded-full"
+                className="rounded-full w-9 h-9 object-cover"
               />
               <p className="ml-2 text-[var(--color-gray-100)] dark:text-[var(--color-white)] text-base font-semibold">
                 {writerData?.nickname}
@@ -186,7 +170,12 @@ export default function CommunityPost({
             {likeCount}
           </p>
 
-          <IoEyeOutline className="ml-[11px] w-4 h-4 text-[var(--color-gray-60)]" />
+          <IoChatboxOutline className="ml-[11px] w-5 h-5 text-[var(--color-gray-60)]" />
+          <p className="ml-[3px] text-[var(--color-gray-70)] text-[13px]">
+            {comments ?? 0}
+          </p>
+
+          <IoEyeOutline className="ml-[11px] w-5 h-5 text-[var(--color-gray-60)]" />
           <p className="ml-[3px] text-[var(--color-gray-70)] text-[13px]">
             {views ?? 0}
           </p>

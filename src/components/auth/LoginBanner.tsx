@@ -9,7 +9,7 @@ const LoginBanner = () => {
         <br />
         내맘대로.
       </h1>
-      <h3 className="text-[var(--color-gray-80)] text-sm pt-2.5 dark:text-gray-60">
+      <h3 className="text-[var(--color-gray-80)] text-sm pt-2.5 dark:text-[var(--color-gray-60)]">
         핵심만 빠르게 세 줄 요약
       </h3>
     </div>

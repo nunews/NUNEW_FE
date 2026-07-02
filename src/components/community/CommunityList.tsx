@@ -100,11 +100,11 @@ export default function CommunityList() {
                 className="object-cover"
               />
             </div>
-            <div className="flex flex-col pl-[14px]">
+            <div className="flex flex-col ml-3">
               <p className="text-[var(--color-gray-100)] font-bold text-lg dark:text-[var(--color-white)]">
                 {nickname}
               </p>
-              <p className="text-[var(--color-gray-70)] text-[13px]">
+              <p className="text-[var(--color-gray-70)] text-[13px] text-left">
                 {interest.length > 0
                   ? interest.map((i) => categoryIdInvMap[i]).join(", ")
                   : "관심사가 없습니다"}
@@ -140,6 +140,7 @@ export default function CommunityList() {
                   title={post.title}
                   content={post.contents}
                   views={post.view_count}
+                  comments={post.comment_count}
                 />
               ))}
             </>

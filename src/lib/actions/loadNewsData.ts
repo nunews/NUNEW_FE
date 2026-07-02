@@ -20,10 +20,10 @@ async function isDataStale(): Promise<boolean> {
 
     const lastFetchTime = new Date(latestNews?.created_at).getTime();
     const now = Date.now();
-    const oneHour = 60 * 60 * 1000;
+    const halfHour = 30 * 60 * 1000;
 
     console.log(`마지막 패치: ${new Date(lastFetchTime).toLocaleString()}`);
-    return now - lastFetchTime > oneHour;
+    return now - lastFetchTime > halfHour;
   } catch (error) {
     console.error("데이터 신선도 확인 실패:", error);
     return true;

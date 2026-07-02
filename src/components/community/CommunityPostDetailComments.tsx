@@ -68,7 +68,7 @@ export default function CommunityPostDetailComments({
         .map((comment, i) => (
           <div key={comment.comment_id ?? i} className="relative">
             <Comment
-              userId={comment.user_id}
+              commentUserId={comment.user_id}
               comment={comment.content}
               created_at={comment.created_at}
               onDelete={() => removeComment(comment.comment_id)}

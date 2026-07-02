@@ -13,7 +13,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "NUNEW",
     description: "뉴스를 더 빠르고 가볍게",
-    url: "https://nunews.vercel.app",
+    url: "https://nunew.vercel.app",
     siteName: "NUNEW",
     images: ["/og-image.png"],
     locale: "ko_KR",
