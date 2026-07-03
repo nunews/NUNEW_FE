@@ -11,30 +11,12 @@ export const GET = async (request: NextRequest) => {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
 
     if (!error) {
-      // 사용자 정보 가져오기
-      const { data: userData } = await supabase.auth.getUser();
-
-      if (userData?.user) {
-        // User 테이블에서 프로필 정보 확인
-        const { data: profile } = await supabase
-          .from("User")
-          .select("nickname")
-          .eq("user_id", userData.user.id)
-          .single();
-
-        // nickname이 없으면 최초 로그인 -> profile/init으로 이동
-        if (!profile?.nickname) {
-          return NextResponse.redirect(`${origin}/profile/init`);
-        }
-      }
-
-      // 기존 사용자는 홈으로
-      return NextResponse.redirect(`${origin}${next}`);
+      return NextResponse.redirect(origin + next);
     }
   }
 
   console.error("인증오류");
   return NextResponse.redirect(
-    `${origin}/auth/login?error=AuthenticationFailed`
+    origin + "/auth/login?error=AuthenticationFailed"
   );
 };

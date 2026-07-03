@@ -1,178 +1,137 @@
-"use client";
-import Header from "@/components/layout/header";
-import AudienceAnalyticsChart from "@/components/articleDetail/AudienceAnalyticsChart";
-import { useParams } from "next/navigation";
-<<<<<<< feat/seo-layout
-import { useEffect, useState, useMemo } from "react";
-import { useTyping } from "@/hooks/useTyping";
-import { getLikesStatus } from "@/utils/likes";
-import { useToggleLikeMutation } from "@/hooks/useNewsInteractionMutations";
-=======
->>>>>>> dev
-import RelatedNewsSection from "@/components/articleDetail/RelatedNewsSection";
-import RelatedPostsSection from "@/components/articleDetail/RelatedPostSection";
-import { useNewsDetail } from "@/hooks/useNewsDetail";
-import NewsDetailSkeleton from "@/components/articleDetail/skeleton/NewsDetailSkeleton";
-<<<<<<< feat/seo-layout
-import createClient from "@/utils/supabase/client";
-import { useAuthStore } from "@/stores/authStore";
-=======
-import NewsArticleContent from "@/components/articleDetail/NewsArticleContent";
-import createClient from "@/utils/supabase/client";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
->>>>>>> dev
+import { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+import { getKoreanCategoryFromUUID } from "@/lib/api/getNewstoSupabase";
+import {
+  fetchScrapedContent,
+  isContentSufficient,
+} from "@/lib/api/fetchScrapedContent";
+import NewsDetailClient from "./NewsDetailClient";
 
-export default function NewsDetailPage() {
-  const params = useParams();
-  const newsId = params.id;
+// ISR: 1시간마다 재생성
+export const revalidate = 3600;
 
-<<<<<<< feat/seo-layout
-  const [showSummary, setShowSummary] = useState(false);
-  const [isLiked, setIsLiked] = useState(false);
-  const { typedRef, runTyped } = useTyping();
-  const likeMutation = useToggleLikeMutation();
-  const supabase = useMemo(() => createClient(), []);
-  const userId = useAuthStore((state) => state.userId);
-=======
-  const { data: newsData, isLoading } = useNewsDetail(newsId as string);
->>>>>>> dev
+// 크롤링이 필요한 최소 본문 길이
+const MIN_CONTENT_LENGTH = 100;
 
-  const supabase = createClient();
-  const hasIncrementedView = useRef(false);
-  const queryClient = useQueryClient();
+async function createServerSupabase() {
+  const cookieStore = await cookies();
 
-  const { mutate: incrementNewsView } = useMutation({
-    mutationFn: async (newsId: string) => {
-      await supabase.rpc("increment_news_view", {
-        p_news_id: newsId,
-      });
-    },
-    onMutate: async (newsId) => {
-      await queryClient.cancelQueries({ queryKey: ["news-detail", newsId] });
-
-      const previousData = queryClient.getQueryData(["news-detail", newsId]);
-      queryClient.setQueryData(["news-detail", newsId], (old: any) => {
-        if (!old) return old;
-        return {
-          ...old,
-          view_count: (old.view_count || 0) + 1,
-        };
-      });
-<<<<<<< feat/seo-layout
-    } else {
-      reset();
+  return createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
+        setAll() {},
+      },
     }
-  }, [generateSummary, reset, runTyped, showSummary]);
+  );
+}
 
-  // 페이지 로드 시 조회수 증가 및 조회 로그 기록
-  useEffect(() => {
-    const incrementView = async () => {
-      if (!newsId || !userId) return;
-      try {
-        await supabase.rpc("increment_news_view", {
-          p_news_id: newsId as string,
-          p_user_id: userId,
-        });
-      } catch (error) {
-        console.error("조회수 증가 실패:", error);
-      }
-    };
+async function getNewsData(newsId: string) {
+  const supabase = await createServerSupabase();
 
-    incrementView();
-  }, [newsId, userId, supabase]);
+  const { data: newsData, error } = await supabase
+    .from("News")
+    .select("*")
+    .eq("news_id", newsId)
+    .single();
 
-  useEffect(() => {
-    const fetchLikes = async () => {
-      if (!newsId) return;
-      try {
-        const [status] = await Promise.all([getLikesStatus(newsId as string)]);
-
-        setIsLiked(status);
-      } catch (e) {
-        console.error("뉴스 좋아요 정보 로딩 실패:", e);
-      }
-    };
-
-    fetchLikes();
-  }, [newsId]);
-
-  const handleSummary = () => {
-    setShowSummary(true);
-  };
-
-  const handleLikeClick = async () => {
-    if (!newsId) return;
-
-    // Optimistic
-    const previousIsLiked = isLiked;
-    setIsLiked(!isLiked);
-
-    try {
-      const res = await likeMutation.mutateAsync(newsId as string);
-      setIsLiked(res.isLiked);
-    } catch (e) {
-      // 실패 시 롤백
-      setIsLiked(previousIsLiked);
-      toast.error("로그인이 필요합니다.");
-      console.error("좋아요 토글 실패:", e);
-    }
-  };
-
-  const handleShare = async () => {
-    const currentUrl = window.location.href;
-    const newsTitle = "뉴스 제목";
-=======
->>>>>>> dev
-
-      return { previousData };
-    },
-    onError: (err, newsId, context) => {
-      if (context?.previousData) {
-        queryClient.setQueryData(["news-detail", newsId], context.previousData);
-      }
-    },
-    onSettled: (data, error, newsId) => {
-      queryClient.invalidateQueries({ queryKey: ["news-detail", newsId] });
-    },
-  });
-
-  useEffect(() => {
-    if (!newsData || hasIncrementedView.current) return;
-    incrementNewsView(newsData.news_id);
-    hasIncrementedView.current = true;
-  }, [newsData, incrementNewsView]);
-
-  if (isLoading) {
-    return <NewsDetailSkeleton />;
-  }
-
-  if (!newsData) {
+  if (error || !newsData) {
     return null;
   }
 
-  return (
-    <div className="min-h-screen">
-      <Header logo={false} />
+  const koreanCategory = getKoreanCategoryFromUUID(newsData.category_id);
+  let finalContent = newsData.content;
 
-      {/* 뉴스 본문 */}
-      <NewsArticleContent newsData={newsData} />
+  // 본문이 부족하면 크롤링 서버에서 가져오기 시도
+  if (
+    !isContentSufficient(newsData.content, MIN_CONTENT_LENGTH) &&
+    newsData.url &&
+    newsData.source
+  ) {
+    const scrapedContent = await fetchScrapedContent(
+      newsData.source,
+      newsData.url
+    );
 
-      {/* 조회수/좋아요 차트  */}
-      <div className="px-5">
-        <div className="py-3 mt-9">
-          <AudienceAnalyticsChart newsId={newsData.news_id} />
-        </div>
-        <div className="border-b border-[var(--color-gray-20)] mt-9 dark:border-[var(--color-gray-100)]" />
-        {/* 다른 유저의 생각 */}
-        <RelatedPostsSection categoryLabel={newsData.category_id ?? null} />
-        <div className="border-b border-[var(--color-gray-20)] mt-9 dark:border-[var(--color-gray-100)]" />
-        {/* 관심 가질만한 다른 뉴스 섹션 */}
-        <RelatedNewsSection
-          categoryLabel={newsData.category_id ?? null}
-          currentNewsId={newsData.news_id ?? null}
-        />
-      </div>
-    </div>
-  );
+    if (scrapedContent && scrapedContent.length > (finalContent?.length ?? 0)) {
+      finalContent = scrapedContent;
+    }
+  }
+
+  return {
+    news_id: newsData.news_id,
+    category_id: koreanCategory,
+    title: newsData.title,
+    content: finalContent,
+    source: newsData.source,
+    published_at: newsData.published_at
+      ? new Date(newsData.published_at).toISOString()
+      : new Date().toISOString(),
+    url: newsData.url,
+    view_count: newsData.view_count ?? 0,
+    like_count: newsData.like_count ?? 0,
+    image_url: newsData.image_url,
+  };
+}
+
+type Props = {
+  params: Promise<{ id: string }>;
+};
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { id } = await params;
+  const newsData = await getNewsData(id);
+
+  if (!newsData) {
+    return {
+      title: "뉴스를 찾을 수 없습니다 | 누뉴",
+    };
+  }
+
+  const description =
+    newsData.content?.slice(0, 155) + "..." || "누뉴에서 쉽게 읽는 뉴스";
+
+  return {
+    title: `${newsData.title} | 누뉴`,
+    description,
+    openGraph: {
+      title: newsData.title,
+      description,
+      type: "article",
+      publishedTime: newsData.published_at,
+      images: newsData.image_url
+        ? [
+            {
+              url: newsData.image_url,
+              width: 1200,
+              height: 630,
+              alt: newsData.title,
+            },
+          ]
+        : undefined,
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: newsData.title,
+      description,
+      images: newsData.image_url ? [newsData.image_url] : undefined,
+    },
+  };
+}
+
+export default async function NewsDetailPage({ params }: Props) {
+  const { id } = await params;
+  const newsData = await getNewsData(id);
+
+  if (!newsData) {
+    notFound();
+  }
+
+  return <NewsDetailClient newsData={newsData} />;
 }

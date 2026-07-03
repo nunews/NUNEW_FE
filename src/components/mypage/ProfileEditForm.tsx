@@ -4,7 +4,6 @@ import { TextButton } from "../ui/TextButton";
 import Image from "next/image";
 import defaultProfile from "../../assets/images/default_profile.png";
 import { toast } from "sonner";
-import createClient from "@/utils/supabase/client";
 import { generateRandomNickname } from "@/utils/generateRandomNickname";
 import { Dices } from "lucide-react";
 import { IMAGE_ALLOWED_TYPES, IMAGE_MAX_SIZE } from "@/lib/constants/files";
@@ -25,14 +24,13 @@ const ProfileEditForm = ({
   const [nicknameError, setNicknameError] = useState<string | null>(null);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const supabase = createClient();
+  const backendUrl =
+    process.env.NEXT_PUBLIC_BACKEND_URL || "http://127.0.0.1:4000";
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // 파일 타입 지정하고 해당 타입만 가능
-    //
     if (!IMAGE_ALLOWED_TYPES.includes(file.type)) {
       toast.error("PNG, JPG, JPEG 파일만 업로드 가능합니다.");
       e.target.value = "";
@@ -44,13 +42,14 @@ const ProfileEditForm = ({
       e.target.value = "";
       return;
     }
+
     const reader = new FileReader();
     reader.onloadend = () => {
       const result = reader.result as string;
       setPreviewImage(result);
-      if (setProfileImage) setProfileImage(result);
     };
     reader.readAsDataURL(file);
+    if (setProfileImage) setProfileImage(file);
   };
 
   const handleClick = () => fileInputRef.current?.click();
@@ -78,7 +77,6 @@ const ProfileEditForm = ({
       return;
     }
 
-    // 유효하지 않으면 중복확인 중단
     if (nicknameError) return;
 
     if (nickname === currentNickname) {
@@ -89,15 +87,20 @@ const ProfileEditForm = ({
 
     try {
       setChecking(true);
-      const { data, error } = await supabase
-        .from("User")
-        .select("user_id")
-        .eq("nickname", nickname)
-        .maybeSingle();
+      const response = await fetch(
+        backendUrl +
+          "/users/nickname/check?nickname=" +
+          encodeURIComponent(nickname),
+        {
+          credentials: "include",
+        }
+      );
 
-      if (error) throw error;
+      if (!response.ok) throw new Error("닉네임 중복 확인 실패");
 
-      if (data) {
+      const data = (await response.json()) as { available: boolean };
+
+      if (!data.available) {
         toast.error("이미 사용 중인 닉네임입니다.");
         setIsNicknameChecked(false);
       } else {
@@ -125,7 +128,6 @@ const ProfileEditForm = ({
         내 정보 수정
       </h1>
 
-      {/* 프로필 이미지 */}
       <div className="flex justify-center">
         <div
           className="relative w-24 h-24 rounded-full overflow-hidden cursor-pointer group"
@@ -150,7 +152,6 @@ const ProfileEditForm = ({
         </div>
       </div>
 
-      {/* 닉네임 변경 */}
       <div>
         <p className="pb-2 text-[var(--color-gray-80)]">닉네임 변경</p>
         <div className="flex items-center gap-2">
@@ -169,7 +170,6 @@ const ProfileEditForm = ({
             }
           />
 
-          {/* 랜덤 닉네임 버튼 */}
           <button
             type="button"
             onClick={handleRandomNickname}
